@@ -1,5 +1,5 @@
 # Usage: 
-# make -> generate "stegify" executable
+# make -> generate "steganize" executable
 # make clean -> clean up executable 
 
 CC := gcc
@@ -8,11 +8,12 @@ LINKERFLAGS := -lm
 all: steganographer
 
 steganographer: main.c
-	@echo "Making \"stegify\" executable"
-	${CC} -o stegify main.c ${LINKERFLAGS}
+	@echo "Making \"steganize\" executable in current directory"
+	@${CC} -o steganize main.c ${LINKERFLAGS}
 	@echo "Done"
 
-clean: stegify
+clean: steganize
 	@echo "Removing executable"
-	@rm stegify
+	@rm steganize
+	@echo "Executable removed"
 
