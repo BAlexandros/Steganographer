@@ -8,7 +8,7 @@
 int main(void)
 {
   unsigned int width,height,channels;
-  unsigned char *data = stbi_load("sample.jpeg", &width, &height, &channels, 3);
+  unsigned char *data = stbi_load("test_images/sample1.jpeg", &width, &height, &channels, 3);
   for (unsigned int i = 0; i < channels*height*width; i += channels){
     // Do something with the pixels
   }
