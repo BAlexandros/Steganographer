@@ -1,88 +1,78 @@
-#define STB_IMAGE_IMPLEMENTATION
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "headers/stb_image.h"
-#include "headers/stb_image_write.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <png.h>
 
-#define DESIRED_OUT_QUALITY_PERC 100
-#define HIDE_MODE   1
-#define REVEAL_MODE 1
+#define PNG_HEADER_SIZE 8
 
-int main(void)
+/*************************
+ *  Function prototypes  *
+ ************************/
+
+void verify_minimum_arguments(int);
+void verify_file_is_open(FILE*);
+void verify_file_is_png(FILE*);
+
+/************************/
+
+int main(int argc, char *argv[])
 {
+  //
+  // Check if enough arguments were given, and give a help message if not
+  verify_minimum_arguments(argc);
 
-  if (HIDE_MODE){
+  // Open the cover image, in which we will hide the secret image,
+  // and verify that it was opened correctly and is a png file
+  char* cover_filename = argv[1];
+  FILE *cover_image_fp = fopen(cover_filename,"rb");
+  verify_file_is_open(cover_image_fp);
+  verify_file_is_png(cover_image_fp);
 
-    // Cover image information
-    unsigned int cover_width, cover_height, cover_channels;
-    unsigned char *cover_data = stbi_load("./test_images/sample1.jpeg", &cover_width, &cover_height, &cover_channels, 0);
-    if ( cover_data == NULL || cover_width*cover_height*cover_channels == 0){
-      printf("Problem opening file, exiting\n");
-      exit(-1);
-    }
+  // Repeat the opening and verification process for the secret image
+  char* secret_filename = argv[2];
+  FILE *secret_image_fp = fopen(secret_filename,"rb");
+  verify_file_is_open(secret_image_fp);
+  verify_file_is_png(secret_image_fp);
 
-    // Image to be hidden
-    unsigned int hidden_width, hidden_height, hidden_channels;
-    unsigned char *hidden_data = stbi_load("./test_images/sample3.jpg", &hidden_width, &hidden_height, &hidden_channels, 0);
-    if ( hidden_data == NULL || hidden_width*hidden_height*hidden_channels == 0){
-      printf("Problem opening file, exiting\n");
-      exit(-1);
-    }
 
-    // Check if image to be hidden fits in the cover image
-    if ( hidden_width > cover_width || hidden_height > cover_height || hidden_width*hidden_height*hidden_channels > cover_width*cover_height*cover_channels){
-      printf("The cover image is too small to fit the message\n");
-      exit(-1);
-    }
-
-    // Change the cover image data to include the hidden image
-    // The proper indexing is row*total_rows*total_channels + col*total_channels + channel
-    for (unsigned int row = 0; row < cover_height; row++){
-      for (unsigned int col = 0; col < cover_width; col++){
-        for (unsigned int ch = 0; ch < cover_channels; ch++){
-          unsigned int cover_index = row*cover_width*cover_channels+col*cover_channels+ch;
-          if ( row < hidden_height && col < hidden_width){
-            unsigned int hidden_index = row*hidden_width*hidden_channels+col*hidden_channels+ch;
-            cover_data[cover_index] = ( cover_data[cover_index] & ~15 ) | ( hidden_data[hidden_index] & 15);
-          } else {
-            cover_data[cover_index] = ( cover_data[cover_index] & ~15 ) | ( 255 & 15);
-          }
-        }
-      }
-    }
-
-    // Write the cover file with the hidden image
-    stbi_write_jpg("out.jpg", cover_width, cover_height, cover_channels, cover_data, DESIRED_OUT_QUALITY_PERC);
-    // Recover memory
-    stbi_image_free(cover_data);
-  }
-
-  if (REVEAL_MODE){
-
-    // Cover image information
-    unsigned int cover_width, cover_height, cover_channels;
-    unsigned char *cover_data = stbi_load("./out.jpg", &cover_width, &cover_height, &cover_channels, 0);
-    if ( cover_data == NULL || cover_width*cover_height*cover_channels == 0){
-      printf("Problem opening file, exiting\n");
-      exit(-1);
-    }
-
-    for (unsigned int row = 0; row < cover_height; row++){
-      for (unsigned int col = 0; col < cover_width; col++){
-        for (unsigned int ch = 0; ch < cover_channels; ch++){
-          unsigned int index = row*cover_width*cover_channels+col*cover_channels+ch;
-          if ( cover_data[index] & 15 == 0){
-            cover_data[index] = 255;
-          } else {
-            cover_data[index] <<= 4;
-          }
-        }
-      }
-    }
-    stbi_write_jpg("hidden.jpg", cover_width, cover_height, cover_channels, cover_data, DESIRED_OUT_QUALITY_PERC);
-    // Recover memory
-    stbi_image_free(cover_data);
-  }
-
+  // Close the files after processing them
+  fclose(cover_image_fp);
+  fclose(secret_image_fp);
 
   return 0;
+}
+
+/****************************
+ *   Function definitions   *
+ ***************************/
+
+void verify_minimum_arguments(int argument_num)
+{
+  if ( argument_num < 3){
+    printf("You have not entered enough arguments. \n"
+           "Try entering the cover image as the first argument, and the secret image as the second argument. \n"
+           "(Note: Only PNG files are currently supported)\n");
+    exit(-1);
+  }
+  return;
+}
+
+void verify_file_is_open(FILE* filename)
+{
+  if (!filename){
+    printf("Error: Problem opening files. Exiting\n");
+    exit(-1);
+  }
+  return;
+}
+
+void verify_file_is_png(FILE* filename)
+{
+  // Read the header and terminate the program if the file is not a png
+  unsigned char header[PNG_HEADER_SIZE];
+  fread(header, 1, PNG_HEADER_SIZE, filename);
+  if (png_sig_cmp(header, 0, PNG_HEADER_SIZE)){
+    printf("Error: Currently only png files are supported. Exiting\n");
+    exit(-1);
+  }
+  return;
 }

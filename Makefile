@@ -3,13 +3,14 @@
 # make clean -> clean up executable 
 
 CC := gcc
-LINKERFLAGS := -lm
+GCCFLAGS := -Wall
+LINKERFLAGS := -lpng
 
 all: steganographer
 
 steganographer: main.c
 	@echo "Making \"steganize\" executable in current directory"
-	@${CC} -o steganize main.c ${LINKERFLAGS}
+	${CC} ${GCCFLAGS} -o steganize main.c ${LINKERFLAGS}
 	@echo "Done"
 
 clean: steganize
