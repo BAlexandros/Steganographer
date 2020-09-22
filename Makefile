@@ -4,7 +4,7 @@
 
 CC := gcc
 GCCFLAGS := -Wall
-LINKERFLAGS := -lpng
+LINKERFLAGS := -lpng -lm
 
 all: steganographer
 

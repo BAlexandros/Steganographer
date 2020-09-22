@@ -1,13 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <png.h>
 
 #define PNG_HEADER_SIZE 8
 
 #define BOLD_ON          "\033[1m"
+#define ITALICS_ON       "\033[3m"
 #define UNDERSCORE_ON    "\033[4m"
 #define BOLD_OFF         "\033[0m"
+#define ITALICS_OFF      "\033[0m"
 #define UNDERSCORE_OFF   "\033[0m"
 
 struct config_struct
@@ -22,8 +25,10 @@ struct config_struct
   int   sig_bits;           // -s to set the number of bits replaced at each channel
   int   brighten_cover;     // -b to choose whether the padding around the secret will be
                             //    dimmed or brightened
-  int   padding_black;      // -p to choose if the padding will be black or whit
+  int   padding_white;      // -p to choose if the padding will be black or whit
 };
+
+int get_mask_from_sig_bits(int);
 
 void init_configs(struct config_struct*);
 void process_arguments(int,char* [], struct config_struct*);
@@ -34,3 +39,4 @@ void verify_file_is_png(FILE*);
 
 int hide_png_in_png(struct config_struct);
 int extract_png_from_png(struct config_struct);
+

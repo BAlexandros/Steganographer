@@ -19,6 +19,4 @@ int main(int argc, char *argv[])
 
 //TODO just keep the RGBA if both are RGBA
 //TODO combine alpha instead of removing it in RGBA->RGB
-//TODO use a config struct to pass all the necessary parameters to the functions
-//TODO update help message
 //TODO update README
