@@ -8,7 +8,7 @@ LINKERFLAGS := -lpng
 
 all: steganographer
 
-steganographer: sources/main.c
+steganographer: sources/main.c sources/steg.c
 	@echo "Making \"steganize\" executable in current directory"
 	${CC} ${GCCFLAGS} -o steganize ./sources/main.c ./sources/steg.c ${LINKERFLAGS}
 	@echo "Done"

@@ -1,11 +1,98 @@
 #include "../headers/steg.h"
 
-void process_arguments(int argument_num)
+void init_configs(struct config_struct* configurations)
+{
+  configurations->cover_file_name     = NULL;
+  configurations->secret_file_name    = NULL;
+  configurations->output_file_name    = "out.png";
+  configurations->combined_file_name  = NULL;
+  configurations->encrypt_flag    = 0;
+  configurations->decrypt_flag    = 0;
+  configurations->out_name_flag   = 0;
+  configurations->sig_bits        = 4;
+  configurations->brighten_cover  = 0;
+  configurations->padding_black   = 0;
+
+  return;
+}
+
+void process_arguments(int argument_num, char* argv[], struct config_struct* configurations)
 {
   if ( argument_num == 1){
     show_help_message();
     exit(-1);
   }
+  int i = 1;
+  while (i < argument_num){
+
+    if (!strcmp( argv[i], "-h") || !(strcmp( argv[i], "--help")))
+      show_help_message();
+
+    if (!strcmp( argv[i], "-e") || !(strcmp( argv[i], "--encrypt"))){
+      configurations->encrypt_flag     = 1;
+      if (argv[i+1] == NULL || argv[i+2] == NULL || argv[i+1][0] == '-' || argv[i+2][0] == '-'){
+        printf("Invalid syntax. Please use -h or --help for further information\n");
+        exit(-1);
+      }
+      configurations->cover_file_name  = argv[i+1];
+      configurations->secret_file_name = argv[i+2];
+      i+=3;
+      continue;
+    }
+
+    if (!strcmp( argv[i], "-d") || !(strcmp( argv[i], "--decrypt"))){
+      configurations->decrypt_flag = 1;
+      if (argv[i+1] == NULL || argv[i+1][0] == '-'){
+        printf("Invalid syntax. Please use -h or --help for further information\n");
+        exit(-1);
+      }
+      configurations->combined_file_name  = argv[i+1];
+      i+=2;
+      continue;
+    }
+
+    if (!strcmp( argv[i], "-o") || !(strcmp( argv[i], "--output_name"))){
+      configurations->out_name_flag = 1;
+      if (argv[i+1] == NULL || argv[i+1][0] == '-'){
+        printf("Invalid syntax. Please use -h or --help for further information\n");
+        exit(-1);
+      }
+      configurations->output_file_name = argv[i+1];
+      i+=2;
+      continue;
+    }
+
+    if (!strcmp( argv[i], "-s") || !(strcmp( argv[i], "--sigs"))){
+      if ( atoi(argv[i+1]) <= 0 || atoi(argv[i+1]) >= 8){
+        printf("The number of bits to be replaced must be in the range (0,8). Using default value = 4\n");
+      } else {
+        configurations->sig_bits = atoi(argv[i+1]);
+      }
+      i+=2;
+      continue;
+    }
+
+    if (!strcmp( argv[i], "-b") || !(strcmp( argv[i], "--brighten_cover"))){
+      configurations->brighten_cover = 1;
+      i++;
+      continue;
+    }
+
+    if (!strcmp( argv[i], "-p") || !(strcmp( argv[i], "--padding_black"))){
+      configurations->padding_black = 1;
+      i++;
+      continue;
+    }
+    i++;
+  }
+
+  // Make sure we are either encrypting or decrypting. No need to do both in one call
+  if ( configurations->encrypt_flag == configurations->decrypt_flag){
+    printf("Please pick either to encrypt or to decrypt in each command call.\n"
+           "You can use -h or --help for more information.\n");
+    exit(-1);
+  }
+
   return;
 }
 
@@ -21,6 +108,7 @@ void show_help_message(void)
          "    example: ./steganize -d file.png\n"
          BOLD_ON "-h, --help\n" BOLD_OFF
          "    show this message\n\n");
+  exit(-1);
   return;
 }
 
@@ -45,17 +133,17 @@ void verify_file_is_png(FILE* filename)
   return;
 }
 
-int hide_png_in_png( char* cover_file_name, char* secret_file_name)
+int hide_png_in_png(struct config_struct confs)
 {
   printf("Opening the files and checking their type\n");
   // Open the cover image, in which we will hide the secret image,
   // and verify that it was opened correctly and is a png file
-  FILE *cover_image_fp = fopen(cover_file_name,"rb");
+  FILE *cover_image_fp = fopen(confs.cover_file_name,"rb");
   verify_file_is_open(cover_image_fp);
   verify_file_is_png(cover_image_fp);
 
   // Repeat the opening and verification process for the secret image
-  FILE *secret_image_fp = fopen(secret_file_name,"rb");
+  FILE *secret_image_fp = fopen(confs.secret_file_name,"rb");
   verify_file_is_open(secret_image_fp);
   verify_file_is_png(secret_image_fp);
 
@@ -64,12 +152,12 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   png_infop   info_ptr_cover  = png_create_info_struct(png_ptr_cover); 
   if (!info_ptr_cover){ 
     png_destroy_read_struct(&png_ptr_cover, (png_infopp)NULL, (png_infopp)NULL); 
-    return -1; 
+    exit(-1);
   } 
   png_infop   end_info_cover  = png_create_info_struct(png_ptr_cover); 
   if (!end_info_cover){ 
     png_destroy_read_struct(&png_ptr_cover, &info_ptr_cover, (png_infopp)NULL); 
-    return -1; 
+    exit(-1);
   } 
    
   // And the structures for the secret file */
@@ -77,12 +165,12 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   png_infop   info_ptr_secret = png_create_info_struct(png_ptr_secret); 
   if (!info_ptr_secret){ 
     png_destroy_read_struct(&png_ptr_secret, NULL, NULL); 
-    return -1; 
+    exit(-1);
   } 
   png_infop   end_info_secret  = png_create_info_struct(png_ptr_secret); 
   if (!end_info_secret){ 
     png_destroy_read_struct(&png_ptr_secret, &info_ptr_secret, (png_infopp)NULL); 
-    return -1; 
+    exit(-1);
   } 
    
   // Set up input code */
@@ -93,7 +181,7 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   png_set_sig_bytes( png_ptr_secret, PNG_HEADER_SIZE);
 
   /***********************************
-   *  Read the files (data and info  *
+   *  Read the files (data and info) *
    **********************************/
   
   // Finally read the info  */
@@ -141,7 +229,6 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
                  &sec_bit_depth, &sec_color_type, NULL, NULL, NULL);
     printf("Secret image is using palette indices. Converting to RGB\n");
   }
-
   // If the colour type is RGBA, make it RGB
   if ( cov_color_type & PNG_COLOR_MASK_ALPHA){
     png_set_strip_alpha(png_ptr_cover);
@@ -151,6 +238,7 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
     printf("Cover image is RGBA. Converting to RGB\n");
   }
   if ( sec_color_type & PNG_COLOR_MASK_ALPHA){
+    // 
     png_set_strip_alpha(png_ptr_secret);
     png_read_update_info( png_ptr_secret, info_ptr_secret);
     png_get_IHDR(png_ptr_secret, info_ptr_secret, &sec_width, &sec_height, \
@@ -162,14 +250,14 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   sec_channels = png_get_channels( png_ptr_secret, info_ptr_secret);
 
   printf("Size of cover  (%s): %u x %u. Bit depth: %d. Color : %d, Channels: %d\n", \
-         cover_file_name,  cov_width, cov_height, cov_bit_depth, cov_color_type, cov_channels);
+         confs.cover_file_name,  cov_width, cov_height, cov_bit_depth, cov_color_type, cov_channels);
   printf("Size of secret (%s): %u x %u. Bit depth: %d. Color : %d, Channels: %d\n", \
-         secret_file_name, sec_width, sec_height, sec_bit_depth, sec_color_type, sec_channels);
+         confs.secret_file_name, sec_width, sec_height, sec_bit_depth, sec_color_type, sec_channels);
 
   // Exit if the secret does not fit inside the cover
   if ( sec_width*sec_height*sec_channels > cov_width*cov_height*cov_channels){
     printf("The secret image is too large for the cover. Exiting\n");
-    return -1;
+    exit(-1);
   }
    
   // Read the images' data
@@ -194,16 +282,21 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
    *********************/
   printf("Beginning the processing of the data\n");
 
-  // Processing code here
-  for ( unsigned int r = 0; r < cov_height; r++){
-    for ( unsigned int c = 0; c < cov_rowbytes; c++){
-      if ( (r >= sec_height) || (c >= sec_rowbytes)){
-        row_pointers_cover[r][c] = ( row_pointers_cover[r][c] & ~0xff) | ( 0xffff & 0xff);
-      } 
-      else {
-        row_pointers_cover[r][c] = ( row_pointers_cover[r][c] & ~0xff) | ( row_pointers_secret[r][c] & 0xff);
+  if ( cov_bit_depth == 8 && sec_bit_depth == 8){
+    for ( unsigned int r = 0; r < cov_height; r++){
+      for ( unsigned int c = 0; c < cov_rowbytes; c++){
+        if ( (r >= sec_height) || (c >= sec_rowbytes)){
+          row_pointers_cover[r][c] = ( row_pointers_cover[r][c] & ~0xf) | ( 0x0 & 0xf);
+        } 
+        else {
+          row_pointers_cover[r][c] = ( row_pointers_cover[r][c] & ~0xf) | ( (row_pointers_secret[r][c]>>4) & 0xf);
+        }
       }
     }
+  }
+  else {
+    printf("No support for 16 bit channels yet\n");
+    exit(-1);
   }
   
   printf("Data processed\n");
@@ -221,15 +314,15 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   int out_bit_depth           = cov_bit_depth;
   int out_color_type          = cov_color_type;
   png_uint_32 out_rowbytes    = cov_rowbytes;
-  FILE* out_image_fp = fopen("out.png","wb");
+  FILE* out_image_fp = fopen(confs.output_file_name,"wb");
   verify_file_is_open(out_image_fp);
   png_structp png_ptr_out = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   png_infop info_ptr_out  = png_create_info_struct(png_ptr_out);
   /* setjmp(png_jmpbuf(png_ptr_out)); */
   png_init_io(png_ptr_out, out_image_fp);
   png_set_IHDR( png_ptr_out, info_ptr_out, out_width, out_height, out_bit_depth, 
-                out_color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, 
-                PNG_FILTER_TYPE_BASE);
+                out_color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, 
+                PNG_FILTER_TYPE_DEFAULT);
   png_write_info( png_ptr_out, info_ptr_out);
 
   // Fill the data with the new image
@@ -245,7 +338,7 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   }
   png_write_end(png_ptr_out, info_ptr_out);
 
-  printf("Output file written sucessfully\n");
+  printf("Combined images written sucessfully in %s\n", confs.output_file_name);
 
   //Close the file and clean up memory
   fclose(cover_image_fp);
@@ -266,11 +359,11 @@ int hide_png_in_png( char* cover_file_name, char* secret_file_name)
   return 0;
 }
 
-int extract_png_from_png(char* combined_file_name)
+int extract_png_from_png(struct config_struct confs)
 {
 
-  printf("Opening \"%s\" to reveal hidden file\n", combined_file_name);
-  FILE *combined_image_fp = fopen(combined_file_name,"rb");
+  printf("Opening \"%s\" to reveal hidden file\n", confs.combined_file_name);
+  FILE *combined_image_fp = fopen(confs.combined_file_name,"rb");
   verify_file_is_open(combined_image_fp);
   verify_file_is_png(combined_image_fp);
   // Initialize the structures required by libpng to read the cover file */
@@ -278,12 +371,12 @@ int extract_png_from_png(char* combined_file_name)
   png_infop   info_ptr_combined  = png_create_info_struct(png_ptr_combined); 
   if (!info_ptr_combined){ 
     png_destroy_read_struct(&png_ptr_combined, (png_infopp)NULL, (png_infopp)NULL); 
-    return -1; 
+    exit(-1);
   } 
   png_infop   end_info_combined  = png_create_info_struct(png_ptr_combined); 
   if (!end_info_combined){ 
     png_destroy_read_struct(&png_ptr_combined, &info_ptr_combined, (png_infopp)NULL); 
-    return -1; 
+    exit(-1);
   } 
   png_init_io( png_ptr_combined,  combined_image_fp); 
   // Inform libpng that bytes are missing from start of files (read to check headers) */
@@ -299,7 +392,7 @@ int extract_png_from_png(char* combined_file_name)
   comb_channels = png_get_channels( png_ptr_combined,  info_ptr_combined);
 
   printf("Size of \"%s\": %u x %u. Bit depth: %d. Color : %d, Channels: %d\n", \
-         combined_file_name, comb_width, comb_height, comb_bit_depth, 
+         confs.combined_file_name, comb_width, comb_height, comb_bit_depth, 
          comb_color_type, comb_channels);
 
   // Read the images' data
@@ -320,14 +413,14 @@ int extract_png_from_png(char* combined_file_name)
   int hid_bit_depth           = comb_bit_depth;
   int hid_color_type          = comb_color_type;
   png_uint_32 hid_rowbytes    = comb_rowbytes;
-  FILE* hidden_image_fp = fopen("hidden.png","wb");
+  FILE* hidden_image_fp = fopen(confs.output_file_name,"wb");
   verify_file_is_open(hidden_image_fp);
   png_structp png_ptr_hidden = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
   png_infop info_ptr_hidden  = png_create_info_struct(png_ptr_hidden);
   png_init_io(png_ptr_hidden, hidden_image_fp);
   png_set_IHDR( png_ptr_hidden, info_ptr_hidden, hid_width, hid_height, hid_bit_depth, 
-                hid_color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE, 
-                PNG_FILTER_TYPE_BASE);
+                hid_color_type, PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, 
+                PNG_FILTER_TYPE_DEFAULT);
   png_write_info( png_ptr_hidden, info_ptr_hidden);
 
   // Fill the data with the new image
@@ -336,8 +429,8 @@ int extract_png_from_png(char* combined_file_name)
   if (hid_bit_depth == 8){
     for ( unsigned int y = 0; y < hid_height; y++) {
       for ( unsigned int x = 0; x < hid_rowbytes; x++) {
-        if ( (row_pointers_combined[y][x] & 15) == 15 ){
-          row_pointers_hidden[x] = 255;
+        if ( (row_pointers_combined[y][x] & 0xf) == (0x0 & 0xf)){
+          row_pointers_hidden[x] = 0x0;
         } 
         else {
           row_pointers_hidden[x] = row_pointers_combined[y][x] << 4;
@@ -348,7 +441,7 @@ int extract_png_from_png(char* combined_file_name)
   }
   png_write_end(png_ptr_hidden, info_ptr_hidden);
 
-  printf("Data written to hidden.png\n");
+  printf("Data written to %s\n", confs.output_file_name);
 
   fclose(combined_image_fp);
   fclose(hidden_image_fp);
