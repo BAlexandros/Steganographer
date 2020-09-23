@@ -1,8 +1,16 @@
-## Steganographer
+# Steganographer
 
 A command line tool that lets you hide one file into another
 
-#### Introduction 
+### Table of Contents
+1. [Introduction](#Introduction)
+2. [What it does](#What-it-does)
+3. [Dependencies](#Dependencies)
+4. [Installation](#Instalation)
+5. [Usage](#Usage)
+6. [Uninstall](#Uninstall)
+
+## Introduction 
 
 _Steganography_ is the practice of concealing messages and information within
 other non-secret text or data.  The necessity to conceal information can be
@@ -22,7 +30,7 @@ For example, altering the least significant bit in a pixel of an image file
 wouldn't not lead to difference noticeable to the human eye, but would allow to
 store one binary bit of hidden information.
 
-#### What it does
+## What it does
 
  
 | <img src="./examples/before_after.png" width="600"> |
@@ -38,7 +46,7 @@ we replace the more visible the contrast between the cover and the secret
 becomes. A balance must be struck in order to hide the secret effectively and
 not render the hiding process pointless. 
 
-#### Dependencies
+## Dependencies
 
 Functionality has only been verified on a Linux system (Ubuntu 18.04)
 The program uses [libpng](http://www.libpng.org/pub/png/libpng.html) for the PNG
@@ -64,7 +72,7 @@ project and run one of the following commands:
 - `make install` will create a `steganize` executable in the /bin directory, so it
 may require root permissions
 
-#### Usage
+## Usage
 
 The program can be run with the `./steganize` command from the local directory,
 or just `steganize` if you used `make install`.
@@ -108,7 +116,7 @@ it again (and supply it with the same argument) in order to properly recover the
 image with the `-b` flag.
 
 
-#### Uninstall 
+## Uninstall 
 
 To either remove part of, or the entire program, you have the following options:
 

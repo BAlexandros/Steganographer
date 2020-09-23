@@ -44,6 +44,7 @@ allclean:
 				if [ -e /bin/steganize ]; then rm /bin/steganize; fi; \
 				rm -rf ./headers; \
 				rm -rf ./sources; \
+				rm -rf ./examples; \
 				rm -rf ./.git; \
 				rm ./.gitignore; \
 				rm README.md; \
