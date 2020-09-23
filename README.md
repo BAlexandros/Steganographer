@@ -24,6 +24,11 @@ store one binary bit of hidden information.
 
 #### What it does
 
+ 
+| <img src="./examples/before_after.png" width="600"> |
+|:--:|
+| image with hidden message (left) and the message recovered (right) |
+
 In order to hide information this program replaces a set amount of least
 significant bits (LSBs) of a cover image with an equal number of most
 significant bits (MSBs) of a secret image. Unavoidably, information related to
@@ -117,3 +122,4 @@ program (may need root permissions if `make install` was used). Using this
 command means that you would have to repeat the installation to use the tool
 again.
 
+_The images used were taken from https://www.pexels.com_
