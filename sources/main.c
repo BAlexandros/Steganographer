@@ -20,3 +20,4 @@ int main(int argc, char *argv[])
 //TODO just keep the RGBA if both are RGBA
 //TODO combine alpha instead of removing it in RGBA->RGB
 //TODO update README
+//TODO change the verbosity of the messages (INFO, ERROR, VERBOSE levels)
